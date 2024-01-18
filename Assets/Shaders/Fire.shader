@@ -1,17 +1,14 @@
-Shader "Unlit/NewUnlitShader"
+Shader "Unlit/Fire"
 {
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _Brightness("Brightness", float) = 1.0
-        _Color("Color", Color) = (1.0,1.0,1.0,1.0)
     }
     SubShader
     {
         Tags { "Queue"="Transparent" }
         LOD 100
-        Blend SrcAlpha OneMinusSrcAlpha 
-
+        Blend SrcAlpha OneMinusSrcAlpha
         Pass
         {
             CGPROGRAM
@@ -37,8 +34,6 @@ Shader "Unlit/NewUnlitShader"
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
-            float _Brightness;
-            float4 _Color;
 
             v2f vert (appdata v)
             {
@@ -49,22 +44,24 @@ Shader "Unlit/NewUnlitShader"
                 return o;
             }
 
-            float4 frag (v2f i) : SV_Target
+            fixed4 frag (v2f i) : SV_Target
             {
-                float2 uv = i.uv;
-                uv*=10;
-                uv=frac(uv)- 0.5;
-                float d= length(uv);
-                d = step(d,0.4);
 
-
+                float2 uv= i.uv;
+                float x= 1-uv.y;
+                uv.y-=_Time.x;
+                // sample the texture
+                float y = tex2D(_MainTex, uv).r;
+                float s1=step(y,x);
+                float s2= step(y,x-0.2);
+                float step1= s1-s2;
+                float3 col= lerp(float3(1.0,1.0,0.0),float3(1.0,0.0,0.0),step1);
+                float s3= step(y,x-0.4);
+                float step2= s2-s3;
+                col=lerp(col,float3(1.0,0.5,0.0),step2);
                 
-                float BrightnessMultiplier = sin(_Time.y*2)*20;
-                float3 col = float3(d,d,d)*
-                _Color.rgb * 
-                (_Brightness+ BrightnessMultiplier);
-
-                return float4(col, d) ;
+                //float4 col= float4(step1,step1,step1,1.0);
+                return float4(col,s1);
             }
             ENDCG
         }
